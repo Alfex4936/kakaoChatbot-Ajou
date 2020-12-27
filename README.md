@@ -29,6 +29,10 @@ ubuntu:~$ pip install uvicorn
 
 (server) ubuntu:~$ aws s3 cp s3://bucket/kakao.py .
 (server) ubuntu:~$ python kakao.py
+INFO:     Started server process [id]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 ```
 
 ## 특징
