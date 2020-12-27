@@ -7,6 +7,8 @@
 
 [@아주대 공지 챗봇](http://pf.kakao.com/_RUcxnK)
 
+<a href="https://hits.seeyoufarm.com"><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FAlfex4936%2FkakaoChatbot-Ajou&count_bg=%23000000&title_bg=%23000000&icon=wechat.svg&icon_color=%23E7E7E7&title=%3A&edge_flat=true"/></a>
+
 </div>
 
 <div align="center">
@@ -23,7 +25,6 @@ AWS EC2 + S3 기준
 ubuntu:~$ virtualenv server
 ubuntu:~$ source ~/server/bin/activate
 
-ubuntu:~$ pip install fastapi
 ubuntu:~$ pip install fastapi
 ubuntu:~$ pip install uvicorn
 
@@ -48,13 +49,43 @@ title, items, text... 길이를 넘기면 제대로 출력이 안될 수도 있�
 
 *ListCard*: header(15), list_title(35), list_description(16), lists(5)
 
+## 예제 JSON 반응
+"2021 검색"
+
+INFO:     server - "POST /search HTTP/1.1" 200 OK
+
+```json
+{'action': {'clientExtra': {},
+            'detailParams': {'sys_text': {'groupName': '',
+                                          'origin': '2021',
+                                          'value': '2021'}},
+            'id': 'id',
+            'name': '스킬 이름',
+            'params': {'sys_text': '2021'}},
+ 'bot': {'id': 'id', 'name': 'AjouNotice'},
+ 'contexts': [],
+ 'intent': {'extra': {'reason': {'code': 1, 'message': 'OK'}},
+            'id': 'id',
+            'name': '공지 키워드 검색'},
+ 'userRequest': {'block': {'id': 'id',
+                           'name': '공지 키워드 검색'},
+                 'lang': 'kr',
+                 'params': {'ignoreMe': 'true', 'surface': 'BuilderBotTest'},
+                 'timezone': 'Asia/Seoul',
+                 'user': {'id': 'id',
+                          'properties': {'botUserKey': 'key',
+                                         'bot_user_key': 'key'},
+                          'type': 'botUserKey'},
+                 'utterance': '2021 검색\n'}}
+```
+
 ## [오늘/어제 공지 불러오기](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L443)
 
 POST = /message | 발화 =
 "어제 공지 알려줘", 
 "오늘 공지 알려줘"...
 
-entity = when
+entity = "when"
 
 <div align="center">
 <p>
@@ -68,6 +99,8 @@ entity = when
 POST = /last |
  발화 = "지난 공지 알려줘", 
 "마지막 공지"...
+
+entity = 
 
 <div align="center">
 <p>

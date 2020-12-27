@@ -356,7 +356,7 @@ async def parseOne(content: Dict):
 
 @application.post("/search")
 async def searchNotice(content: Dict):
-    """유저의 키워드에 맞는 공지를 불러온다. 메시지 type: simpleText"""
+    """유저의 키워드에 맞는 공지를 불러온다. 메시지 type: simpleText | ListCard"""
     print(">>> /search")
     if not checkConnection():
         return makeTimeoutMessage()
