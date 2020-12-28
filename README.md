@@ -49,6 +49,45 @@ title, items, text... 길이를 넘기면 제대로 출력이 안될 수도 있�
 
 *ListCard*: header(15), list_title(35), list_description(16), lists(5)
 
+### 카카오 챗봇 API JSON Model
+```python
+class KakaoUser(BaseModel):
+    id: str
+    properties: Dict
+    type: str
+
+
+class KakaoUserRequest(BaseModel):
+    block: Dict
+    lang: Optional[str]
+    params: Dict
+    timezone: str
+    user: KakaoUser
+    utterance: str
+
+
+class KakaoAction(BaseModel):
+    clientExtra: Optional[Dict]
+    detailParams: Dict
+    id: str
+    name: str
+    params: Dict
+
+
+class KakaoAPI(BaseModel):
+    """Main Kakao JSON"""
+
+    action: KakaoAction
+    bot: Dict
+    contexts: Optional[List]
+    intent: Dict
+    userRequest: KakaoUserRequest
+
+@application.post("/route", response_model=KakaoAPI)
+async def message(content: KakaoAPI):
+    ...
+```
+
 ## 예제 JSON 반응
 "2021 검색"
 
