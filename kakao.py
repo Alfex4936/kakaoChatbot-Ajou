@@ -1,4 +1,5 @@
 import ssl
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pprint import pprint
 from typing import Dict
@@ -6,17 +7,68 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import urlopen
 
+import db_model.crud
+import db_model.database
+import db_model.models
+import db_model.schemas
 import uvicorn
 from bs4 import BeautifulSoup
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 
 ADDRESS = "https://www.ajou.ac.kr/kr/ajou/notice.do"
 
+db_model.models.Base.metadata.create_all(bind=db_model.database.engine)
 application = FastAPI(
     title="Ajou notices server", description="for Kakao Chatbot", version="1.0.0"
 )
+application.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
+)
+
+
+# Dependency
+@contextmanager
+def get_db():
+    db = db_model.database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def checkUserDB(user_id: str):
+    with get_db() as db:
+        user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
+        if user is None:
+            user = db_model.crud.create_user(db=db, user_id=user_id)
+    return user
+
+
+def checkLastNotice(user_id: str):
+    with get_db() as db:
+        user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
+        if user is None:
+            user = db_model.crud.create_user(db=db, user_id=user_id)
+        last_id = user.last_notice_id
+    return last_id
+
+
+def updateLastNotice(user_id: str, notice_id: int):
+    with get_db() as db:
+        user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
+        if user is None:
+            user = db_model.crud.create_user(db=db, user_id=user_id)
+        user = db_model.crud.update_last_notice(
+            db=db, user_id=user_id, last_notice_id=notice_id
+        )
+    return user
 
 
 def parseNotices(url=None, length=10):
@@ -111,12 +163,24 @@ def makeTimeoutMessage():
     )
 
 
-def getTodayNotices(now):
-    """ 15개 정도의 공지 목록을 읽고, 오늘 날짜에 맞는 것만 return"""
+def getTodayNotices(now, user_id):
+    """ 15개 정도의 공지 목록을 읽고, 날짜에 맞는 것만 return"""
     noticesToday = []
     length = 15
 
     ids, posts, dates, writers = parseNotices(length=length)  # Parse notices
+    if (
+        dates[-1].text.strip() == now
+    ):  # if last one is today's notice, it should load more notices
+        ids2, posts2, dates2, writers2 = parseNotices(
+            url=f"{ADDRESS}?mode=list&articleLimit={length}&article.offset=1",
+            length=length,
+        )  # Load more 15 notices at offset 1
+        ids += ids2
+        posts += posts2
+        dates += dates2
+        writers += writers2
+        length = 30  # total lengths of notices become 30
 
     for i in range(length):
         postDate = dates[i].text.strip()
@@ -134,11 +198,28 @@ def getTodayNotices(now):
         data = makeJSON(postId, postTitle, postDate, postLink, postWriter)
         noticesToday.append(data)
 
+    updateLastNotice(user_id, int(ids[0].text.strip()))
+
     return noticesToday
 
 
+def getYesterdayNotices(now):
+    """ 어제 공지는 MySQL 데이터베이스를 통해 읽어온다. """
+    with get_db() as db:
+        db_notices = db_model.crud.get_notices_with_date(db=db, date=now)
+
+    notices = []
+    for notice in db_notices:
+        data = makeJSON(
+            notice.id, notice.title, notice.date, notice.link, notice.writer
+        )
+        notices.append(data)
+
+    return notices  # descending ordered notices
+
+
 def getLastNotice():
-    """ 1개의 공지만 읽어온다. """
+    """ 마지막 1개의 공지만 읽어온다. """
     ids, posts, dates, writers = parseNotices(length=1)  # Parse one notice
     postDate = dates[0].text.strip()
     postTitle = posts[0].text.strip()
@@ -154,10 +235,10 @@ def getLastNotice():
     return data, postDate
 
 
-def switch(when, now):
+def switch(when, now, user_id):
     """ 오늘/어제 공지에 따른 옵션 switch """
-    notices = getTodayNotices(now)
     DAY = "오늘" if when == "today" else "이전"
+    notices = getTodayNotices(now, user_id) if DAY == "오늘" else getYesterdayNotices(now)
     if not notices:
         notices = [
             {
@@ -197,13 +278,15 @@ def switch(when, now):
 
 
 @application.get("/")
-async def hello():
+def hello():
     return "Welcome, the server is running well."
 
 
 @application.post("/ask")
-async def askKeyword(content: Dict):
+def askKeyword(_: Dict):
     """원하는 공지 분류를 선택하도록 유도"""
+    # user_id = content["userRequest"]["user"]["id"]  # user Id
+    # checkUserDB(user_id)
     print(">>> /ask")
 
     categories = [
@@ -236,7 +319,7 @@ async def askKeyword(content: Dict):
 
 
 @application.post("/date")
-async def searchDate(content: Dict):
+def searchDate(content: Dict):
     """WIP"""
     print(">>> /date")
     print(content["action"]["params"]["date"])
@@ -244,8 +327,10 @@ async def searchDate(content: Dict):
 
 
 @application.post("/ask/filter")
-async def searchKeyword(content: Dict):
+def searchKeyword(content: Dict):
     """유저가 카테고리를 선택하도록 유도한다. 메시지 type: ListCard"""
+    user_id = content["userRequest"]["user"]["id"]  # user Id
+    checkUserDB(user_id)
     print(">>> /ask/filter")
     # pprint(content)
     print(content["action"]["params"]["cate"])
@@ -295,6 +380,8 @@ async def searchKeyword(content: Dict):
         data = makeJSONwithDate(postId, postTitle, postDate, postLink, postWriter)
         notices.append(data)
 
+    updateLastNotice(user_id, int(ids[0].text.strip()))
+
     data = {
         "version": "2.0",
         "template": {
@@ -325,8 +412,10 @@ async def searchKeyword(content: Dict):
 
 
 @application.post("/last")
-async def parseOne(content: Dict):
+def parseOne(content: Dict):
     """지난 최근 마지막 공지 1개만 읽어온다. 메시지 type: ListCard"""
+    user_id = content["userRequest"]["user"]["id"]  # user Id
+    checkUserDB(user_id)
     print("/last")
     if not checkConnection():
         return makeTimeoutMessage()
@@ -355,8 +444,11 @@ async def parseOne(content: Dict):
 
 
 @application.post("/search")
-async def searchNotice(content: Dict):
+def searchNotice(content: Dict):
     """유저의 키워드에 맞는 공지를 불러온다. 메시지 type: simpleText | ListCard"""
+    user_id = content["userRequest"]["user"]["id"]  # user Id
+    checkUserDB(user_id)
+
     print(">>> /search")
     if not checkConnection():
         return makeTimeoutMessage()
@@ -409,6 +501,8 @@ async def searchNotice(content: Dict):
         data = makeJSONwithDate(postId, postTitle, postDate, postLink, postWriter)
         notices.append(data)
 
+    updateLastNotice(user_id, int(ids[0].text.strip()))
+
     data = {
         "version": "2.0",
         "template": {
@@ -440,8 +534,10 @@ async def searchNotice(content: Dict):
 
 
 @application.post("/message")
-async def message(content: Dict):
+def message(content: Dict):
     """어제/오늘 공지 불러오기 위한 route | 메시지 type: ListCard """
+    user_id = content["userRequest"]["user"]["id"]  # user Id
+    checkUserDB(user_id)
     print(">>> /message")
     if not checkConnection():
         return makeTimeoutMessage()
@@ -456,7 +552,7 @@ async def message(content: Dict):
         now = now - timedelta(days=1)
         now = now.strftime("%y.%m.%d")
 
-    response_data = switch(when, now)
+    response_data = switch(when, now, user_id)
 
     return JSONResponse(content=response_data)
 
