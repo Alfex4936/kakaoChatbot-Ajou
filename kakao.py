@@ -89,23 +89,25 @@ def parseNotices(url=None, length=10):
         result = urlopen(url, timeout=2.0, context=context)
     except HTTPError:
         print("Seems like the server is down now.")
-        return None, None, None, None  # make entity
+        return None, None, None, None, 0  # make entity
     except TimeoutError:
         print("It's taking too long to load website.")
-        return None, None, None, None  # make entity
+        return None, None, None, None, 0  # make entity
 
     html = result.read().decode("utf-8")
     soup = BeautifulSoup(html, "html.parser")
     no_post = soup.select("table > tbody > tr > td.b-no-post")
     if no_post:
-        return None, None, None, None  # make entity
+        return None, None, None, None, 0  # make entity
     ids = soup.select("table > tbody > tr > td.b-num-box")
     posts = soup.select("table > tbody > tr > td.b-td-left > div > a")
     dates = soup.select("table > tbody > tr > td.b-td-left > div > div > span.b-date")
     writers = soup.select(
         "table > tbody > tr > td.b-td-left > div > div.b-m-con > span.b-writer"
     )
-    return ids, posts, dates, writers
+
+    noticeLength = len(ids)
+    return ids, posts, dates, writers, noticeLength
 
 
 def checkConnection():
@@ -168,11 +170,13 @@ def getTodayNotices(now, user_id):
     noticesToday = []
     length = 15
 
-    ids, posts, dates, writers = parseNotices(length=length)  # Parse notices
+    ids, posts, dates, writers, noticeLength = parseNotices(
+        length=length
+    )  # Parse notices
     if (
         dates[-1].text.strip() == now
     ):  # if last one is today's notice, it should load more notices
-        ids2, posts2, dates2, writers2 = parseNotices(
+        ids2, posts2, dates2, writers2, noticeLength2 = parseNotices(
             url=f"{ADDRESS}?mode=list&articleLimit={length}&article.offset=1",
             length=length,
         )  # Load more 15 notices at offset 1
@@ -180,9 +184,9 @@ def getTodayNotices(now, user_id):
         posts += posts2
         dates += dates2
         writers += writers2
-        length = 30  # total lengths of notices become 30
+        noticeLength += noticeLength2
 
-    for i in range(length):
+    for i in range(noticeLength):
         postDate = dates[i].text.strip()
         if postDate != now:
             break  # don't have to check other notices
@@ -220,7 +224,7 @@ def getYesterdayNotices(now):
 
 def getLastNotice():
     """ 마지막 1개의 공지만 읽어온다. """
-    ids, posts, dates, writers = parseNotices(length=1)  # Parse one notice
+    ids, posts, dates, writers, _ = parseNotices(length=1)  # Parse one notice
     postDate = dates[0].text.strip()
     postTitle = posts[0].text.strip()
     postId = ids[0].text.strip()
@@ -361,12 +365,14 @@ def searchKeyword(content: Dict):
 
     url = f"{ADDRESS}?mode=list&srCategoryId={categories[user_category]}&srSearchKey=&srSearchVal=&articleLimit={length}&article.offset=0"
 
-    ids, posts, dates, writers = parseNotices(url)  # Parse notices
+    ids, posts, dates, writers, noticeLength = parseNotices(
+        url, length
+    )  # Parse notices
     if ids is None:
         return makeTimeoutMessage()
     notices = []
 
-    for i in range(length):
+    for i in range(noticeLength):
         postDate = dates[i].text.strip()
         postTitle = posts[i].text.strip()
         postId = ids[i].text.strip()
@@ -475,7 +481,9 @@ def searchNotice(content: Dict):
     length = 7
     url = f"{ADDRESS}?mode=list&srSearchKey=&srSearchVal={quote(keyword.strip())}&articleLimit={length}&article.offset=0"
 
-    ids, posts, dates, writers = parseNotices(url)  # Parse notices
+    ids, posts, dates, writers, noticeLength = parseNotices(
+        url, length
+    )  # Parse notices
     if ids is None:
         return JSONResponse(
             content={
@@ -487,7 +495,7 @@ def searchNotice(content: Dict):
         )
     notices = []
 
-    for i in range(length):
+    for i in range(noticeLength):
         postDate = dates[i].text.strip()
         postTitle = posts[i].text.strip()
         postId = ids[i].text.strip()
