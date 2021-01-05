@@ -13,9 +13,10 @@ import db_model.models
 import db_model.schemas
 import uvicorn
 from bs4 import BeautifulSoup
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
 
 ADDRESS = "https://www.ajou.ac.kr/kr/ajou/notice.do"
@@ -34,7 +35,6 @@ application.add_middleware(
 
 
 # Dependency
-@contextmanager
 def get_db():
     db = db_model.database.SessionLocal()
     try:
@@ -43,31 +43,28 @@ def get_db():
         db.close()
 
 
-def checkUserDB(user_id: str):
-    with get_db() as db:
-        user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
-        if user is None:
-            user = db_model.crud.create_user(db=db, user_id=user_id)
+def checkUserDB(db: Session, user_id: str):
+    user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
+    if user is None:
+        user = db_model.crud.create_user(db=db, user_id=user_id)
     return user
 
 
-def checkLastNotice(user_id: str):
-    with get_db() as db:
-        user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
-        if user is None:
-            user = db_model.crud.create_user(db=db, user_id=user_id)
-        last_id = user.last_notice_id
+def checkLastNotice(db: Session, user_id: str):
+    user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
+    if user is None:
+        user = db_model.crud.create_user(db=db, user_id=user_id)
+    last_id = user.last_notice_id
     return last_id
 
 
-def updateLastNotice(user_id: str, notice_id: int):
-    with get_db() as db:
-        user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
-        if user is None:
-            user = db_model.crud.create_user(db=db, user_id=user_id)
-        user = db_model.crud.update_last_notice(
-            db=db, user_id=user_id, last_notice_id=notice_id
-        )
+def updateLastNotice(db: Session, user_id: str, notice_id: int):
+    user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
+    if user is None:
+        user = db_model.crud.create_user(db=db, user_id=user_id)
+    user = db_model.crud.update_last_notice(
+        db=db, user_id=user_id, last_notice_id=notice_id
+    )
     return user
 
 
@@ -165,7 +162,7 @@ def makeTimeoutMessage():
     )
 
 
-def getTodayNotices(now, user_id):
+def getTodayNotices(db, now, user_id):
     """ 15개 정도의 공지 목록을 읽고, 날짜에 맞는 것만 return"""
     noticesToday = []
     length = 15
@@ -202,15 +199,14 @@ def getTodayNotices(now, user_id):
         data = makeJSON(postId, postTitle, postDate, postLink, postWriter)
         noticesToday.append(data)
 
-    updateLastNotice(user_id, int(ids[0].text.strip()))
+    updateLastNotice(db, user_id, int(ids[0].text.strip()))
 
     return noticesToday
 
 
-def getYesterdayNotices(now):
+def getYesterdayNotices(db, now):
     """ 어제 공지는 MySQL 데이터베이스를 통해 읽어온다. """
-    with get_db() as db:
-        db_notices = db_model.crud.get_notices_with_date(db=db, date=now)
+    db_notices = db_model.crud.get_notices_with_date(db=db, date=now)
 
     notices = []
     for notice in db_notices:
@@ -239,10 +235,10 @@ def getLastNotice():
     return data, postDate
 
 
-def switch(when, now, user_id):
+def switch(db, when, now, user_id):
     """ 오늘/어제 공지에 따른 옵션 switch """
     DAY = "오늘" if when == "today" else "이전"
-    notices = getTodayNotices(now, user_id) if DAY == "오늘" else getYesterdayNotices(now)
+    notices = getTodayNotices(db, now, user_id) if DAY == "오늘" else getYesterdayNotices(db, now)
     if not notices:
         notices = [
             {
@@ -331,10 +327,10 @@ def searchDate(content: Dict):
 
 
 @application.post("/ask/filter")
-def searchKeyword(content: Dict):
+def searchKeyword(content: Dict, db: Session = Depends(get_db)):
     """유저가 카테고리를 선택하도록 유도한다. 메시지 type: ListCard"""
     user_id = content["userRequest"]["user"]["id"]  # user Id
-    checkUserDB(user_id)
+    checkUserDB(db, user_id)
     print(">>> /ask/filter")
     # pprint(content)
     print(content["action"]["params"]["cate"])
@@ -386,7 +382,7 @@ def searchKeyword(content: Dict):
         data = makeJSONwithDate(postId, postTitle, postDate, postLink, postWriter)
         notices.append(data)
 
-    updateLastNotice(user_id, int(ids[0].text.strip()))
+    updateLastNotice(db, user_id, int(ids[0].text.strip()))
 
     data = {
         "version": "2.0",
@@ -418,10 +414,10 @@ def searchKeyword(content: Dict):
 
 
 @application.post("/last")
-def parseOne(content: Dict):
+def parseOne(content: Dict, db: Session = Depends(get_db)):
     """지난 최근 마지막 공지 1개만 읽어온다. 메시지 type: ListCard"""
     user_id = content["userRequest"]["user"]["id"]  # user Id
-    checkUserDB(user_id)
+    checkUserDB(db, user_id)
     print("/last")
     if not checkConnection():
         return makeTimeoutMessage()
@@ -450,10 +446,10 @@ def parseOne(content: Dict):
 
 
 @application.post("/search")
-def searchNotice(content: Dict):
+def searchNotice(content: Dict, db: Session = Depends(get_db)):
     """유저의 키워드에 맞는 공지를 불러온다. 메시지 type: simpleText | ListCard"""
     user_id = content["userRequest"]["user"]["id"]  # user Id
-    checkUserDB(user_id)
+    checkUserDB(db, user_id)
 
     print(">>> /search")
     if not checkConnection():
@@ -509,7 +505,7 @@ def searchNotice(content: Dict):
         data = makeJSONwithDate(postId, postTitle, postDate, postLink, postWriter)
         notices.append(data)
 
-    updateLastNotice(user_id, int(ids[0].text.strip()))
+    updateLastNotice(db, user_id, int(ids[0].text.strip()))
 
     data = {
         "version": "2.0",
@@ -542,10 +538,10 @@ def searchNotice(content: Dict):
 
 
 @application.post("/message")
-def message(content: Dict):
+def message(content: Dict, db: Session = Depends(get_db)):
     """어제/오늘 공지 불러오기 위한 route | 메시지 type: ListCard """
     user_id = content["userRequest"]["user"]["id"]  # user Id
-    checkUserDB(user_id)
+    checkUserDB(db, user_id)
     print(">>> /message")
     if not checkConnection():
         return makeTimeoutMessage()
@@ -560,7 +556,7 @@ def message(content: Dict):
         now = now - timedelta(days=1)
         now = now.strftime("%y.%m.%d")
 
-    response_data = switch(when, now, user_id)
+    response_data = switch(db, when, now, user_id)
 
     return JSONResponse(content=response_data)
 
