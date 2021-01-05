@@ -2,6 +2,7 @@ import ssl
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from pytz import timezone
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
@@ -50,6 +51,41 @@ class AjouParser:
         """Check notices from html per period"""
         try:
             while True:  # 30분마다 무한 반복
+                now = datetime.now(timezone("Asia/Seoul"))
+                week = now.weekday()
+                if week >= 5:  # for saturday, sunday
+                    monday = datetime(
+                        now.year,
+                        now.month,
+                        now.day,
+                        9,
+                        0,
+                        tzinfo=timezone("Asia/Seoul"),
+                    )
+                    monday += timedelta(days=7 - week)
+                    diff_secs = (monday - now).seconds
+                    print(
+                        f"Weekend...resting until next KST monday 9am: {diff_secs//60} minutes",
+                    )
+                    time.sleep(diff_secs)
+                elif now.hour >= 19 or 0 <= now.hour <= 8:  # after 7pm, rest until next morning 10am
+                    nextMorning = datetime(
+                        now.year,
+                        now.month,
+                        now.day,
+                        10,
+                        0,
+                        tzinfo=timezone("Asia/Seoul"),
+                    )
+                    if now.hour >= 19:
+                        nextMorning += timedelta(days=1)
+                    diff_secs = (nextMorning - now).seconds
+                    print(
+                        f"Night time...resting until next KST 9am: {diff_secs//60} minutes"
+                    )
+                    time.sleep(diff_secs)
+                    continue  # possible weekend
+
                 print("Trying to parse new posts...")
                 ids, posts, dates, writers = self.parser()  # 다시 파싱
                 while ids is None:  # 파싱이 안되면 5분마다 다시 시도
