@@ -1,5 +1,4 @@
 import ssl
-from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pprint import pprint
 from typing import Dict
@@ -238,7 +237,11 @@ def getLastNotice():
 def switch(db, when, now, user_id):
     """ 오늘/어제 공지에 따른 옵션 switch """
     DAY = "오늘" if when == "today" else "이전"
-    notices = getTodayNotices(db, now, user_id) if DAY == "오늘" else getYesterdayNotices(db, now)
+    notices = (
+        getTodayNotices(db, now, user_id)
+        if DAY == "오늘"
+        else getYesterdayNotices(db, now)
+    )
     if not notices:
         notices = [
             {
