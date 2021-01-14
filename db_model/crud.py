@@ -59,3 +59,8 @@ def delete_old_notice(db: Session, date: str):
     delete = models.Notices.__table__.delete().where(models.Notices.date == date)
     db.execute(delete)
     db.commit()
+
+
+def get_all_sched(db: Session):
+    scheds = db.query(models.Schedules).all()
+    return scheds

@@ -11,10 +11,10 @@ import db_model.database
 import db_model.models
 import db_model.schemas
 import uvicorn
-from bs4 import BeautifulSoup
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from selectolax.parser import HTMLParser
 from sqlalchemy.orm import Session
 
 
@@ -32,6 +32,8 @@ application.add_middleware(
     allow_credentials=True,
 )
 
+
+# SQL START
 
 # Dependency
 def get_db():
@@ -57,6 +59,10 @@ def checkLastNotice(db: Session, user_id: str):
     return last_id
 
 
+def getSchedule(db: Session):
+    return db_model.crud.get_all_sched(db=db)
+
+
 def updateLastNotice(db: Session, user_id: str, notice_id: int):
     user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
     if user is None:
@@ -67,6 +73,9 @@ def updateLastNotice(db: Session, user_id: str, notice_id: int):
     return user
 
 
+# SQL END
+
+
 def parseNotices(url=None, length=10):
     """공지 파서 메인
 
@@ -75,7 +84,7 @@ def parseNotices(url=None, length=10):
         length (int, optional): 몇 개의 공지를 읽을 것인가. Defaults to 10.
 
     Returns:
-        ids, posts, dates, writers (list, optional): length에 따른 공지 목록을 전부 불러온다.
+        ids, posts, dates, writers, length (list, optional): length에 따른 공지 목록을 전부 불러온다.
     """
     if url is None:
         url = f"{ADDRESS}?mode=list&articleLimit={length}&article.offset=0"
@@ -91,19 +100,16 @@ def parseNotices(url=None, length=10):
         return None, None, None, None, 0  # make entity
 
     html = result.read().decode("utf-8")
-    soup = BeautifulSoup(html, "html.parser")
-    no_post = soup.select("table > tbody > tr > td.b-no-post")
+    soup = HTMLParser(html)
+    no_post = soup.css("td.b-no-post")
     if no_post:
         return None, None, None, None, 0  # make entity
-    ids = soup.select("table > tbody > tr > td.b-num-box")
-    posts = soup.select("table > tbody > tr > td.b-td-left > div > a")
-    dates = soup.select("table > tbody > tr > td.b-td-left > div > div > span.b-date")
-    writers = soup.select(
-        "table > tbody > tr > td.b-td-left > div > div.b-m-con > span.b-writer"
-    )
 
-    noticeLength = len(ids)
-    return ids, posts, dates, writers, noticeLength
+    ids = soup.css("td.b-num-box")
+    posts = soup.css("div.b-title-box > a")
+    dates = soup.css("span.b-date")
+    writers = soup.css("span.b-writer")
+    return ids, posts, dates, writers, len(ids)
 
 
 def checkConnection():
@@ -125,6 +131,10 @@ def checkConnection():
 
 def makeJSON(postId, postTitle, postDate, postLink, postWriter):
     """리스트 카드형의 카드 형식"""
+    duplicate = "[" + postWriter + "]"
+    if duplicate in postTitle:  # writer: [writer] title
+        postTitle = postTitle.replace(duplicate, "").strip()  # -> writer: title
+
     return {
         "title": (postTitle[:32] + "...") if len(postTitle) > 35 else postTitle,
         "description": postWriter,
@@ -135,6 +145,9 @@ def makeJSON(postId, postTitle, postDate, postLink, postWriter):
 
 def makeJSONwithDate(postId, postTitle, postDate, postLink, postWriter):
     """리스트 카드형의 카드 형식, writer뒤에 날짜를 넣어준다."""
+    duplicate = "[" + postWriter + "]"
+    if duplicate in postTitle:  # writer: [writer] title
+        postTitle = postTitle.replace(duplicate, "").strip()  # -> writer: title
     return {
         "title": (postTitle[:32] + "...") if len(postTitle) > 35 else postTitle,
         "description": f"{postWriter} {postDate[len(postDate) -5:]}",  # 다산학부대학교학팀 12.25 (maxLength=16)
@@ -161,44 +174,47 @@ def makeTimeoutMessage():
     )
 
 
+def makeCarouselCard(title, desc):
+    card = {
+            "title": title,
+            "description": desc,
+            "thumbnail": {
+                "imageUrl": "https://raw.githubusercontent.com/Alfex4936/kakaoChatbot-Ajou/main/imgs/ajou_carousel.png"
+            },
+            #   "buttons": [  optional
+            #     {
+            #       "action": "message",
+            #       "label": "열어보기",
+            #       "messageText": "짜잔! 우리가 찾던 보물입니다"
+            #     },
+            #   ]
+        }
+    
+    return card
+
+
 def getTodayNotices(db, now, user_id):
-    """ 15개 정도의 공지 목록을 읽고, 날짜에 맞는 것만 return"""
+    """ 30개 정도의 공지 목록을 읽고, 날짜에 맞는 것만 return"""
     noticesToday = []
-    length = 15
+    length = 30
 
     ids, posts, dates, writers, noticeLength = parseNotices(
         length=length
     )  # Parse notices
-    if (
-        dates[-1].text.strip() == now
-    ):  # if last one is today's notice, it should load more notices
-        ids2, posts2, dates2, writers2, noticeLength2 = parseNotices(
-            url=f"{ADDRESS}?mode=list&articleLimit={length}&article.offset=1",
-            length=length,
-        )  # Load more 15 notices at offset 1
-        ids += ids2
-        posts += posts2
-        dates += dates2
-        writers += writers2
-        noticeLength += noticeLength2
 
     for i in range(noticeLength):
-        postDate = dates[i].text.strip()
+        postDate = dates[i].text(strip=True)
         if postDate != now:
             break  # don't have to check other notices
-        postTitle = posts[i].text.strip()
-        postId = ids[i].text.strip()
-        postLink = ADDRESS + posts[i].get("href")
-        postWriter = writers[i].text
-
-        duplicate = "[" + postWriter + "]"
-        if duplicate in postTitle:  # writer: [writer] title
-            postTitle = postTitle.replace(duplicate, "").strip()  # -> writer: title
+        postTitle = posts[i].text(strip=True)
+        postId = ids[i].text(strip=True)
+        postLink = ADDRESS + posts[i].attributes["href"]
+        postWriter = writers[i].text(strip=False)
 
         data = makeJSON(postId, postTitle, postDate, postLink, postWriter)
         noticesToday.append(data)
 
-    updateLastNotice(db, user_id, int(ids[0].text.strip()))
+    updateLastNotice(db, user_id, int(ids[0].text(strip=True)))
 
     return noticesToday
 
@@ -220,15 +236,11 @@ def getYesterdayNotices(db, now):
 def getLastNotice():
     """ 마지막 1개의 공지만 읽어온다. """
     ids, posts, dates, writers, _ = parseNotices(length=1)  # Parse one notice
-    postDate = dates[0].text.strip()
-    postTitle = posts[0].text.strip()
-    postId = ids[0].text.strip()
-    postLink = ADDRESS + posts[0].get("href")
-    postWriter = writers[0].text
-
-    duplicate = "[" + postWriter + "]"
-    if duplicate in postTitle:  # writer: [writer] title
-        postTitle = postTitle.replace(duplicate, "").strip()  # -> writer: title
+    postDate = dates[0].text(strip=True)
+    postTitle = posts[0].text(strip=True)
+    postId = ids[0].text(strip=True)
+    postLink = ADDRESS + posts[0].attributes["href"]
+    postWriter = writers[0].text(strip=False)
 
     data = makeJSON(postId, postTitle, postDate, postLink, postWriter)
     return data, postDate
@@ -325,7 +337,7 @@ def askKeyword(_: Dict):
 def searchDate(content: Dict):
     """WIP"""
     print(">>> /date")
-    print(content["action"]["params"]["date"])
+    # print(content["action"]["params"]["date"])
     return JSONResponse(content={})
 
 
@@ -336,7 +348,7 @@ def searchKeyword(content: Dict, db: Session = Depends(get_db)):
     checkUserDB(db, user_id)
     print(">>> /ask/filter")
     # pprint(content)
-    print(content["action"]["params"]["cate"])
+    # print(content["action"]["params"]["cate"])
 
     if not checkConnection():
         return makeTimeoutMessage()
@@ -367,25 +379,21 @@ def searchKeyword(content: Dict, db: Session = Depends(get_db)):
     ids, posts, dates, writers, noticeLength = parseNotices(
         url, length
     )  # Parse notices
-    if ids is None:
+    if noticeLength == 0:
         return makeTimeoutMessage()
     notices = []
 
     for i in range(noticeLength):
-        postDate = dates[i].text.strip()
-        postTitle = posts[i].text.strip()
-        postId = ids[i].text.strip()
-        postLink = ADDRESS + posts[i].get("href")
-        postWriter = writers[i].text
-
-        duplicate = "[" + postWriter + "]"
-        if duplicate in postTitle:  # writer: [writer] title
-            postTitle = postTitle.replace(duplicate, "").strip()  # -> writer: title
+        postDate = dates[i].text(strip=True)
+        postTitle = posts[i].text(strip=True)
+        postId = ids[i].text(strip=True)
+        postLink = ADDRESS + posts[i].attributes["href"]
+        postWriter = writers[i].text(strip=False)
 
         data = makeJSONwithDate(postId, postTitle, postDate, postLink, postWriter)
         notices.append(data)
 
-    updateLastNotice(db, user_id, int(ids[0].text.strip()))
+    updateLastNotice(db, user_id, int(ids[0].text(strip=True)))
 
     data = {
         "version": "2.0",
@@ -458,7 +466,7 @@ def searchNotice(content: Dict, db: Session = Depends(get_db)):
     if not checkConnection():
         return makeTimeoutMessage()
 
-    pprint(content)
+    # pprint(content)
     content = content["action"]["params"]
     if not "sys_text" in content:
         return JSONResponse(
@@ -483,7 +491,7 @@ def searchNotice(content: Dict, db: Session = Depends(get_db)):
     ids, posts, dates, writers, noticeLength = parseNotices(
         url, length
     )  # Parse notices
-    if ids is None:
+    if noticeLength == 0:
         return JSONResponse(
             content={
                 "version": "2.0",
@@ -495,20 +503,16 @@ def searchNotice(content: Dict, db: Session = Depends(get_db)):
     notices = []
 
     for i in range(noticeLength):
-        postDate = dates[i].text.strip()
-        postTitle = posts[i].text.strip()
-        postId = ids[i].text.strip()
-        postLink = ADDRESS + posts[i].get("href")
-        postWriter = writers[i].text
-
-        duplicate = "[" + postWriter + "]"
-        if duplicate in postTitle:  # writer: [writer] title
-            postTitle = postTitle.replace(duplicate, "").strip()  # -> writer: title
+        postDate = dates[i].text(strip=True)
+        postTitle = posts[i].text(strip=True)
+        postId = ids[i].text(strip=True)
+        postLink = ADDRESS + posts[i].attributes["href"]
+        postWriter = writers[i].text(strip=False)
 
         data = makeJSONwithDate(postId, postTitle, postDate, postLink, postWriter)
         notices.append(data)
 
-    updateLastNotice(db, user_id, int(ids[0].text.strip()))
+    updateLastNotice(db, user_id, int(ids[0].text(strip=True)))
 
     data = {
         "version": "2.0",
@@ -562,6 +566,31 @@ def message(content: Dict, db: Session = Depends(get_db)):
     response_data = switch(db, when, now, user_id)
 
     return JSONResponse(content=response_data)
+
+
+@application.post("/schedule")
+def schedule(content: Dict, db: Session = Depends(get_db)):
+    """MySQL DB 학사일정 불러오기 | 메시지 type: Carousel BasicCards """
+    user_id = content["userRequest"]["user"]["id"]  # user Id
+    checkUserDB(db, user_id)
+    print(">>> /schedule")
+    cards = []
+    append = cards.append
+
+    scheds = getSchedule(db=db)
+    for sched in scheds:
+        append(
+            makeCarouselCard(sched.content, f"{sched.start_date} ~ {sched.end_date}")
+        )
+
+    content = {
+        "version": "2.0",
+        "template": {
+            "outputs": [{"carousel": {"type": "basicCard", "items": cards[:10]}}],
+        },
+    }
+
+    return JSONResponse(content=content)
 
 
 if __name__ == "__main__":
