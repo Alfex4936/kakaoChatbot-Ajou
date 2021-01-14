@@ -202,6 +202,6 @@ TO-DO: 랜덤 이미지 부여
 
 <div align="center">
 <p>
-    <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/ajou_carousel.png">
+    <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/schedule.png">
 </p>
 </div>
