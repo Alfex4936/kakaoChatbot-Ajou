@@ -56,6 +56,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 * 마지막 공지 1개 불러오기 ("마지막 공지 알려줘")
 * 카테고리 선택 (학사,학사일정,비교과,장학, 취업,사무,행사,파란학기제,학술,입학,기타)
 * 키워드 공지 검색 ("2021 검색해줘")
+* 학사 일정 보기 ("달력", "일정")
 
 ## 카카오 챗봇
 title, items, text... 길이를 넘기면 제대로 출력이 안될 수도 있다.
@@ -63,6 +64,8 @@ title, items, text... 길이를 넘기면 제대로 출력이 안될 수도 있�
 *simpleText*: text(1000)
 
 *ListCard*: header(15), list_title(35), list_description(16), lists(5)
+
+*Carousel*: items(10)
 
 ## 카카오 챗봇 API JSON Model
 ```python
@@ -185,5 +188,20 @@ entity = 분류 필요
 <div align="center">
 <p>
     <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/keyword_search.png">
+</p>
+</div>
+
+## [학사 일정 보기](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L358)
+
+POST = /schedule |
+ 발화 = "달력", "일정" ...
+
+entity = 분류 필요
+
+TO-DO: 랜덤 이미지 부여
+
+<div align="center">
+<p>
+    <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/ajou_carousel.png">
 </p>
 </div>
