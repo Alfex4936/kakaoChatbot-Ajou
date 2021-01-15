@@ -10,8 +10,7 @@ import db_model.crud
 import db_model.database
 import db_model.models
 import db_model.schemas
-from bs4 import BeautifulSoup
-
+from selectolax.parser import HTMLParser
 
 db_model.models.Base.metadata.create_all(bind=db_model.database.engine)
 
@@ -68,7 +67,9 @@ class AjouParser:
                         f"Weekend...resting until next KST monday 9am: {diff_secs//60} minutes",
                     )
                     time.sleep(diff_secs)
-                elif now.hour >= 19 or 0 <= now.hour <= 8:  # after 7pm, rest until next morning 10am
+                elif (
+                    now.hour >= 19 or 0 <= now.hour <= 8
+                ):  # after 7pm, rest until next morning 10am
                     nextMorning = datetime(
                         now.year,
                         now.month,
@@ -87,23 +88,23 @@ class AjouParser:
                     continue  # possible weekend
 
                 print("Trying to parse new posts...")
-                ids, posts, dates, writers = self.parser()  # 다시 파싱
-                while ids is None:  # 파싱이 안되면 5분마다 다시 시도
+                ids, posts, dates, writers, length = self.parser()  # 다시 파싱
+                while length == 0:  # 파싱이 안되면 5분마다 다시 시도
                     time.sleep(300)
-                    ids, posts, dates, writers = self.parser()
+                    ids, posts, dates, writers, length = self.parser()
 
-                for i in range(self.LENGTH):
-                    postId = ids[i].text.strip()
+                for i in range(length):
+                    postId = ids[i].text(strip=True)
                     isDuplicated = False
                     with get_db() as db:
-                        if db_model.crud.get_notice_by_id(db=db, notice_id=postId):
+                        if db_model.crud.get_notice_by_id(db=db, notice_id=int(postId)):
                             isDuplicated = True
                     if isDuplicated:
                         continue
-                    postLink = self.ADDRESS + posts[i].get("href")
-                    postTitle = posts[i].text.strip()
-                    postDate = dates[i].text.strip()
-                    postWriter = writers[i].text
+                    postTitle = posts[i].text(strip=True)
+                    postLink = self.ADDRESS + posts[i].attributes["href"]
+                    postDate = dates[i].text(strip=True)
+                    postWriter = writers[i].text(strip=False)
 
                     duplicate = "[" + postWriter + "]"
                     if duplicate in postTitle:  # writer: [writer] title
@@ -148,22 +149,22 @@ class AjouParser:
             result = urlopen(url, timeout=2.0, context=context)
         except HTTPError:
             print("Seems like the server is down now.")
-            return None, None, None, None  # make entity
+            return None, None, None, None, 0  # make entity
         except TimeoutError:
             print("It's taking too long to load website.")
-            return None, None, None, None  # make entity
+            return None, None, None, None, 0  # make entity
 
-        html = result.read()
-        soup = BeautifulSoup(html, "html.parser")
-        ids = soup.select("table > tbody > tr > td.b-num-box")
-        posts = soup.select("table > tbody > tr > td.b-td-left > div > a")
-        dates = soup.select(
-            "table > tbody > tr > td.b-td-left > div > div > span.b-date"
-        )
-        writers = soup.select(
-            "table > tbody > tr > td.b-td-left > div > div.b-m-con > span.b-writer"
-        )
-        return ids, posts, dates, writers
+        html = result.read().decode("utf-8")
+        soup = HTMLParser(html)
+        no_post = soup.css("td.b-no-post")
+        if no_post:
+            return None, None, None, None, 0  # make entity
+
+        ids = soup.css("td.b-num-box")
+        posts = soup.css("div.b-title-box > a")
+        dates = soup.css("span.b-date")
+        writers = soup.css("span.b-writer")
+        return ids, posts, dates, writers, len(ids)
 
 
 if __name__ == "__main__":
