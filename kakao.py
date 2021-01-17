@@ -1,6 +1,6 @@
 import ssl
 from datetime import datetime, timedelta
-from pprint import pprint
+from random import choice
 from typing import Dict
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
@@ -11,7 +11,7 @@ import db_model.database
 import db_model.models
 import db_model.schemas
 import uvicorn
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from selectolax.parser import HTMLParser
@@ -175,21 +175,22 @@ def makeTimeoutMessage():
 
 
 def makeCarouselCard(title, desc):
+    card_imgs = ["ajou_carousel", "ajou_carousel_1", "ajou_carousel_2"]
     card = {
-            "title": title,
-            "description": desc,
-            "thumbnail": {
-                "imageUrl": "https://raw.githubusercontent.com/Alfex4936/kakaoChatbot-Ajou/main/imgs/ajou_carousel.png"
-            },
-            #   "buttons": [  optional
-            #     {
-            #       "action": "message",
-            #       "label": "열어보기",
-            #       "messageText": "짜잔! 우리가 찾던 보물입니다"
-            #     },
-            #   ]
-        }
-    
+        "title": title,
+        "description": desc,
+        "thumbnail": {
+            "imageUrl": f"https://raw.githubusercontent.com/Alfex4936/kakaoChatbot-Ajou/main/imgs/{choice(card_imgs)}.png"
+        },
+        #   "buttons": [  optional
+        #     {
+        #       "action": "message",
+        #       "label": "열어보기",
+        #       "messageText": "짜잔! 우리가 찾던 보물입니다"
+        #     },
+        #   ]
+    }
+
     return card
 
 
