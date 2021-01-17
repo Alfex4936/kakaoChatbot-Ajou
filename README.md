@@ -51,12 +51,12 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 ```
 
 ## 특징
-* 오늘/어제 공지 불러오기 (ListCard 최대 한계 5개)
-* 어제 공지는 MySQL DB를 통해 불러온다.
-* 마지막 공지 1개 불러오기 ("마지막 공지 알려줘")
-* 카테고리 선택 (학사,학사일정,비교과,장학, 취업,사무,행사,파란학기제,학술,입학,기타)
-* 키워드 공지 검색 ("2021 검색해줘")
-* 학사 일정 보기 ("달력", "일정")
+* [오늘/어제 공지 불러오기](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EC%98%A4%EB%8A%98%EC%96%B4%EC%A0%9C-%EA%B3%B5%EC%A7%80-%EB%B6%88%EB%9F%AC%EC%98%A4%EA%B8%B0) (ListCard 최대 한계 5개)
+* [어제 공지](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EC%98%A4%EB%8A%98%EC%96%B4%EC%A0%9C-%EA%B3%B5%EC%A7%80-%EB%B6%88%EB%9F%AC%EC%98%A4%EA%B8%B0)는 MySQL DB를 통해 불러온다.
+* [마지막 공지 1개](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EB%A7%88%EC%A7%80%EB%A7%89-%EA%B3%B5%EC%A7%80-1%EA%B0%9C-%EB%B6%88%EB%9F%AC%EC%98%A4%EA%B8%B0) 불러오기 ("마지막 공지 알려줘")
+* [카테고리 선택](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EA%B3%B5%EC%A7%80-%EB%B6%84%EB%A5%98) (학사,학사일정,비교과,장학, 취업,사무,행사,파란학기제,학술,입학,기타)
+* [키워드 공지](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EA%B3%B5%EC%A7%80-%ED%82%A4%EC%9B%8C%EB%93%9C-%EA%B2%80%EC%83%89) 검색 ("2021 검색해줘")
+* [학사 일정](https://github.com/Alfex4936/kakaoChatbot-Ajou#%ED%95%99%EC%82%AC-%EC%9D%BC%EC%A0%95-%EB%B3%B4%EA%B8%B0) 보기 ("달력", "일정")
 
 ## 카카오 챗봇
 title, items, text... 길이를 넘기면 제대로 출력이 안될 수도 있다.
@@ -112,31 +112,62 @@ async def message(content: KakaoAPI):
 INFO:     server - "POST /search HTTP/1.1" 200 OK
 
 ```json
-{'action': {'clientExtra': {},
-            'detailParams': {'sys_text': {'groupName': '',
-                                          'origin': '2021',
-                                          'value': '2021'}},
-            'id': 'id',
-            'name': '스킬 이름',
-            'params': {'sys_text': '2021'}},
- 'bot': {'id': 'id', 'name': 'AjouNotice'},
- 'contexts': [],
- 'intent': {'extra': {'reason': {'code': 1, 'message': 'OK'}},
-            'id': 'id',
-            'name': '공지 키워드 검색'},
- 'userRequest': {'block': {'id': 'id',
-                           'name': '공지 키워드 검색'},
-                 'lang': 'kr',
-                 'params': {'ignoreMe': 'true', 'surface': 'BuilderBotTest'},
-                 'timezone': 'Asia/Seoul',
-                 'user': {'id': 'id',
-                          'properties': {'botUserKey': 'key',
-                                         'bot_user_key': 'key'},
-                          'type': 'botUserKey'},
-                 'utterance': '2021 검색\n'}}
+{
+    "action": {
+        "clientExtra": {},
+        "detailParams": {
+            "sys_text": {
+                "groupName": "",
+                "origin": "2021",
+                "value": "2021"
+            }
+        },
+        "id": "id",
+        "name": "스킬 이름",
+        "params": {
+            "sys_text": "2021"
+        }
+    },
+    "bot": {
+        "id": "id",
+        "name": "AjouNotice"
+    },
+    "contexts": [],
+    "intent": {
+        "extra": {
+            "reason": {
+                "code": 1,
+                "message": "OK"
+            }
+        },
+        "id": "id",
+        "name": "공지 키워드 검색"
+    },
+    "userRequest": {
+        "block": {
+            "id": "id",
+            "name": "공지 키워드 검색"
+        },
+        "lang": "kr",
+        "params": {
+            "ignoreMe": "true",
+            "surface": "BuilderBotTest"
+        },
+        "timezone": "Asia/Seoul",
+        "user": {
+            "id": "id",
+            "properties": {
+                "botUserKey": "key",
+                "bot_user_key": "key"
+            },
+            "type": "botUserKey"
+        },
+        "utterance": "2021 검색\n"
+    }
+}
 ```
 
-## [오늘/어제 공지 불러오기](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L443)
+## [오늘/어제 공지 불러오기](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L548)
 
 POST = /message | 발화 =
 "어제 공지 알려줘", 
@@ -151,7 +182,7 @@ entity = "when"
 </p>
 </div>
 
-## [마지막 공지 1개 불러오기](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L327)
+## [마지막 공지 1개 불러오기](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L428)
 
 POST = /last |
  발화 = "지난 공지 알려줘", 
@@ -165,7 +196,7 @@ entity =
 </p>
 </div>
 
-## [공지 분류](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L205)
+## [공지 분류](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L301)
 
 POST = /ask |
  발화 = "카테고리", 
@@ -177,7 +208,7 @@ POST = /ask |
 </p>
 </div>
 
-## [공지 키워드 검색](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L358)
+## [공지 키워드 검색](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L460)
 
 POST = /search |
  발화 = "카테고리", 
@@ -191,14 +222,14 @@ entity = 분류 필요
 </p>
 </div>
 
-## [학사 일정 보기](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L358)
+## [학사 일정 보기](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L572)
 
 POST = /schedule |
  발화 = "달력", "일정" ...
 
 entity = 분류 필요
 
-TO-DO: 랜덤 이미지 부여
+TO-DO: Selenium을 통한 자동 db 업데이트
 
 <div align="center">
 <p>
