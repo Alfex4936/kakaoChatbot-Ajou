@@ -409,7 +409,7 @@ def searchKeyword(content: Dict, db: Session = Depends(get_db)):
                             {
                                 "label": user_category,
                                 "action": "webLink",
-                                "webLinkUrl": f"https://www.ajou.ac.kr/kr/ajou/notice.do&?mode=list&srCategoryId={categories[user_category]}",
+                                "webLinkUrl": f"https://www.ajou.ac.kr/kr/ajou/notice.do?mode=list&srCategoryId={categories[user_category]}",
                             },
                         ],
                     }
@@ -528,7 +528,7 @@ def searchNotice(content: Dict, db: Session = Depends(get_db)):
                             {
                                 "label": "더보기" if len(notices) > 5 else "홈페이지 보기",
                                 "action": "webLink",
-                                "webLinkUrl": f"https://www.ajou.ac.kr/kr/ajou/notice.do&?mode=list&srSearchKey=&srSearchVal={quote(keyword)}",
+                                "webLinkUrl": f"https://www.ajou.ac.kr/kr/ajou/notice.do?mode=list&srSearchKey=&srSearchVal={quote(keyword)}",
                             },
                         ],
                     }
