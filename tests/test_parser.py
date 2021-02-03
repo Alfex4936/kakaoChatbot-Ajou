@@ -5,7 +5,7 @@ from urllib.request import urlopen
 
 from bs4 import BeautifulSoup
 from selectolax.parser import HTMLParser
-
+from memory_profiler import profile
 
 """ 아주대학교 공지 HTML 옵션
 
@@ -59,11 +59,23 @@ def makeJson(postId, postTitle, postDate, postLink, postWriter):
     }
 
 
+def makeJsonModel(notice):
+    return {
+        notice.id: {
+            "TITLE": notice.post,
+            "DATE": notice.date,
+            "LINK": notice.link,
+            "WRITER": notice.writer,
+        }
+    }
+
+
+@profile
 def parser_modest(url=f"{ADDRESS}?mode=list&articleLimit={LENGTH}&article.offset=0"):
     # req = requests.get(f"{ADDRESS}?mode=list&&articleLimit={LENGTH}&article.offset=0")
     context = ssl._create_unverified_context()
     try:
-        result = urlopen(url, timeout=2.0, context=context)
+        result = urlopen(url, timeout=10.0, context=context)
     except HTTPError:
         print("Seems like the server is down now.")
         return None, None, None, None, 0  # make entity
@@ -73,7 +85,7 @@ def parser_modest(url=f"{ADDRESS}?mode=list&articleLimit={LENGTH}&article.offset
 
     html = result.read().decode("utf-8")
     soup = HTMLParser(html)
-    no_post = soup.css("td.b-no-post")
+    no_post = soup.css_first("td.b-no-post")
     if no_post:
         return None, None, None, None, 0  # make entity
 
@@ -84,11 +96,44 @@ def parser_modest(url=f"{ADDRESS}?mode=list&articleLimit={LENGTH}&article.offset
     return ids, posts, dates, writers, len(ids)
 
 
+@profile
+def parser_modest_model(
+    url=f"{ADDRESS}?mode=list&articleLimit={LENGTH}&article.offset=0",
+):
+    # req = requests.get(f"{ADDRESS}?mode=list&&articleLimit={LENGTH}&article.offset=0")
+    context = ssl._create_unverified_context()
+    try:
+        result = urlopen(url, timeout=10.0, context=context)
+    except HTTPError:
+        print("Seems like the server is down now.")
+        return None, 0  # make entity
+    except TimeoutError:
+        print("It's taking too long to load website.")
+        return None, 0  # make entity
+
+    html = result.read().decode("utf-8")
+    soup = HTMLParser(html)
+    no_post = soup.css_first("td.b-no-post")
+    if no_post:
+        return None, 0  # make entity
+
+    ids = soup.css("td.b-num-box")
+    posts = soup.css("div.b-title-box > a")
+    dates = soup.css("span.b-date")
+    writers = soup.css("span.b-writer")
+    length = len(ids)
+
+    result = [
+        Notice(ids[i], posts[i], dates[i], writers[i]) for i in range(length)
+    ]  # memory
+    return result, length
+
+
 def parser_soup(url=f"{ADDRESS}?mode=list&&articleLimit={LENGTH}&article.offset=0"):
     # req = requests.get(f"{ADDRESS}?mode=list&&articleLimit={LENGTH}&article.offset=0")
     context = ssl._create_unverified_context()
     try:
-        result = urlopen(url, timeout=2.0, context=context)
+        result = urlopen(url, timeout=10.0, context=context)
     except HTTPError:
         print("Seems like the server is down now.")
         return None, None, None, None, 0  # make entity
@@ -152,7 +197,7 @@ def tester(url="https://www.ajou.ac.kr/kr/ajou/notice-calendar.do?mode=mList",):
 
 # Test #1
 def test_parse_soup():
-    assert checkConnection() == True
+    # assert checkConnection() == True
 
     ids, posts, dates, writers, length = parser_soup()
     assert length == LENGTH, f"Check your parser: {length}"
@@ -173,8 +218,9 @@ def test_parse_soup():
         print("data", json.loads(temp))
 
 
+@profile
 def test_parse_modest():
-    assert checkConnection() == True
+    # assert checkConnection() == True
 
     ids, posts, dates, writers, length = parser_modest()
     assert length == LENGTH, f"Check your parser: {length}"
@@ -192,7 +238,19 @@ def test_parse_modest():
 
         data = makeJson(postId, postTitle, postDate, postLink, postWriter)
         temp = json.dumps(data[postId])
-        print("data", json.loads(temp))
+        # print("data", json.loads(temp))
+
+
+@profile
+def test_parse_modest_model():
+    assert checkConnection() == True
+
+    notices, length = parser_modest_model()
+    assert length == LENGTH, f"Check your parser: {length}"
+    for i in range(LENGTH):
+        data = makeJsonModel(notices[i])
+        temp = json.dumps(data[notices[i].id])
+        # print("data", json.loads(temp))
 
 
 def test_connection():
@@ -200,10 +258,45 @@ def test_connection():
     assert checkConnection(ADDRESS + ":/") == False
 
 
+class Notice:
+    ADDRESS = "https://www.ajou.ac.kr/kr/ajou/notice.do"
+
+    __slots__ = ("id", "post", "date", "link", "writer")
+
+    def __init__(self, id, post, date, writer):
+        self.id = id
+        self.post = post
+        self.date = date
+        self.link = None
+        self.writer = writer
+
+        self.make_data()
+
+    def make_data(self):
+        self.id = self.id.text(strip=True)
+        self.link = self.ADDRESS + self.post.attributes["href"]
+        self.writer = self.writer.text(strip=False)
+        self.post = self.post.text(strip=True)
+        duplicate = "[" + self.writer + "]"
+        if duplicate in self.post:  # writer: [writer] title
+            self.post = self.post.replace(duplicate, "").strip()  # -> writer: title
+        self.date = self.date.text(strip=True)
+
+
 if __name__ == "__main__":
+    from timeit import default_timer
+    from memory_profiler import memory_usage
+
     # print("Soup")
-    # test_parse_soup()
+    # start = default_timer()
+    # parser_soup(f"{ADDRESS}?mode=list&articleLimit=10&article.offset=0")
+    # print(f"{default_timer() - start:.5f}s")
+
     # print("Modest")
-    # test_parse_modest()
-    tester()
+    # start = default_timer()
+    # parser_modest(f"{ADDRESS}?mode=list&articleLimit=10&article.offset=0")
+    # print(f"{default_timer() - start:.5f}s"
+
+    test_parse_modest()
+    test_parse_modest_model()
     # print(next(iter(read["POSTS"].keys())))  # Last Key
