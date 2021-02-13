@@ -6,6 +6,7 @@
 <h3>TODO - Kafka 서버를 통한 자동 전달</h3>
 <h3>TODO - 각 유저마다 last notice index</h3>
 
+[@현재 서버 Go언어 Gin으로 변경됨](https://github.com/Alfex4936/KakaoChatBot-Golang)
 [@아주대 공지 챗봇](http://pf.kakao.com/_RUcxnK)
 
 <a href="https://hits.seeyoufarm.com"><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FAlfex4936%2FkakaoChatbot-Ajou&count_bg=%23000000&title_bg=%23000000&icon=wechat.svg&icon_color=%23E7E7E7&title=%3A&edge_flat=true"/></a>
