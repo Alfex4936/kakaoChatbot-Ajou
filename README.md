@@ -250,6 +250,6 @@ TO-DO: 더 나은 메시지 포맷 찾기
 
 <div align="center">
 <p>
-    <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/weather.png">
+    <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/weather.jpg">
 </p>
 </div>
