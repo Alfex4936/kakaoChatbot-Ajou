@@ -58,6 +58,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 * [카테고리 선택](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EA%B3%B5%EC%A7%80-%EB%B6%84%EB%A5%98) (학사,학사일정,비교과,장학, 취업,사무,행사,파란학기제,학술,입학,기타)
 * [키워드 공지](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EA%B3%B5%EC%A7%80-%ED%82%A4%EC%9B%8C%EB%93%9C-%EA%B2%80%EC%83%89) 검색 ("2021 검색해줘")
 * [학사 일정](https://github.com/Alfex4936/kakaoChatbot-Ajou#%ED%95%99%EC%82%AC-%EC%9D%BC%EC%A0%95-%EB%B3%B4%EA%B8%B0) 보기 ("달력", "일정")
+* [수원 날씨 보기](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EC%88%98%EC%9B%90-%EB%82%A0%EC%94%A8-%EB%B3%B4%EA%B8%B0) ("날씨", "우산")
 
 ## 카카오 챗봇
 title, items, text... 길이를 넘기면 제대로 출력이 안될 수도 있다.
@@ -235,5 +236,20 @@ TO-DO: Selenium을 통한 자동 db 업데이트
 <div align="center">
 <p>
     <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/schedule.png">
+</p>
+</div>
+
+## [아주대 지역 날씨 보기]
+
+(수원 영통구 날씨를 weather.naver.com에서 불러옴)
+
+POST = /info/weather |
+ 발화 = "날씨", "아주대 날씨", "날씨 좋아?" ...
+
+TO-DO: 더 나은 메시지 포맷 찾기
+
+<div align="center">
+<p>
+    <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/weather.png">
 </p>
 </div>
