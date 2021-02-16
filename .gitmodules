@@ -1,3 +1,6 @@
 [submodule "golang"]
 	path = golang
 	url = https://github.com/Alfex4936/Golang-Studies/
+[submodule "kakaoChatbot-Golang"]
+	path = kakaoChatbot-Golang
+	url = https://github.com/Alfex4936/kakaoChatbot-Golang
