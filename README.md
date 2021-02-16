@@ -59,6 +59,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 * [키워드 공지](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EA%B3%B5%EC%A7%80-%ED%82%A4%EC%9B%8C%EB%93%9C-%EA%B2%80%EC%83%89) 검색 ("2021 검색해줘")
 * [학사 일정](https://github.com/Alfex4936/kakaoChatbot-Ajou#%ED%95%99%EC%82%AC-%EC%9D%BC%EC%A0%95-%EB%B3%B4%EA%B8%B0) 보기 ("달력", "일정")
 * [수원 날씨 보기](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EC%88%98%EC%9B%90-%EB%82%A0%EC%94%A8-%EB%B3%B4%EA%B8%B0) ("날씨", "우산")
+* [인물 검색](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EC%9D%B8%EB%AC%BC-%EA%B2%80%EC%83%89) ("인물")
 
 ## 카카오 챗봇
 title, items, text... 길이를 넘기면 제대로 출력이 안될 수도 있다.
@@ -251,5 +252,20 @@ TO-DO: 더 나은 메시지 포맷 찾기
 <div align="center">
 <p>
     <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/weather.jpg">
+</p>
+</div>
+
+## [인물 검색]
+
+POST = /info/prof |
+ 발화 = "인물"
+
+ "인물" 입력 후 키워드 검색
+
+TO-DO: 더 나은 발화문
+
+<div align="center">
+<p>
+    <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/search.jpg">
 </p>
 </div>
