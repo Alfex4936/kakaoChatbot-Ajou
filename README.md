@@ -6,7 +6,7 @@
 <h3>TODO - Kafka 서버를 통한 자동 전달</h3>
 <h3>TODO - 각 유저마다 last notice index</h3>
 
-[@현재 서버 Go언어 Gin으로 변경됨](https://github.com/Alfex4936/KakaoChatBot-Golang)
+[@현재 서버 Go언어 Gin으로 변경됨](https://github.com/Alfex4936/KakaoChatBot-Golang) |
 [@아주대 공지 챗봇](http://pf.kakao.com/_RUcxnK)
 
 <a href="https://hits.seeyoufarm.com"><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FAlfex4936%2FkakaoChatbot-Ajou&count_bg=%23000000&title_bg=%23000000&icon=wechat.svg&icon_color=%23E7E7E7&title=%3A&edge_flat=true"/></a>
@@ -58,8 +58,11 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 * [카테고리 선택](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EA%B3%B5%EC%A7%80-%EB%B6%84%EB%A5%98) (학사,학사일정,비교과,장학, 취업,사무,행사,파란학기제,학술,입학,기타)
 * [키워드 공지](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EA%B3%B5%EC%A7%80-%ED%82%A4%EC%9B%8C%EB%93%9C-%EA%B2%80%EC%83%89) 검색 ("2021 검색해줘")
 * [학사 일정](https://github.com/Alfex4936/kakaoChatbot-Ajou#%ED%95%99%EC%82%AC-%EC%9D%BC%EC%A0%95-%EB%B3%B4%EA%B8%B0) 보기 ("달력", "일정")
-* [수원 날씨 보기](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EC%88%98%EC%9B%90-%EB%82%A0%EC%94%A8-%EB%B3%B4%EA%B8%B0) ("날씨", "우산")
-* [인물 검색](https://github.com/Alfex4936/kakaoChatbot-Ajou#%EC%9D%B8%EB%AC%BC-%EA%B2%80%EC%83%89) ("인물")
+* [수원 날씨 보기](https://github.com/Alfex4936/KakaoChatBot-Golang#%EC%95%84%EC%A3%BC%EB%8C%80-%EC%A7%80%EC%97%AD-%EB%82%A0%EC%94%A8-%EB%B3%B4%EA%B8%B0) ("날씨", "우산")
+* [인물 검색](https://github.com/Alfex4936/KakaoChatBot-Golang#%EC%9D%B8%EB%AC%BC-%EA%B2%80%EC%83%89) ("인물" 입력 후 번호/학과/이름 원하는대로 검색)
+* [도서관 좌석 현황](https://github.com/Alfex4936/KakaoChatBot-Golang#%EB%8F%84%EC%84%9C%EA%B4%80-%EC%A2%8C%EC%84%9D-%ED%98%84%ED%99%A9) ("도서관", "좌석", 중앙 도서관 좌석이용 현황 불러옴)
+* [학식 보기](https://github.com/Alfex4936/KakaoChatBot-Golang#%ED%95%99%EC%8B%9D-%EB%B6%88%EB%9F%AC%EC%98%A4%EA%B8%B0) ("오늘/내일 장소", "장소=학생,교직원,기숙사")
+* [채용 정보] ("채용" 교내 채용 정보 10개를 불러옴)
 
 ## 카카오 챗봇
 title, items, text... 길이를 넘기면 제대로 출력이 안될 수도 있다.
@@ -185,6 +188,20 @@ entity = "when"
 </p>
 </div>
 
+## [오늘 공지 더보기](https://github.com/Alfex4936/KakaoChatBot-Golang/blob/main/controllers/getNotice.go#L109)
+
+POST = /today2
+
+"오늘" 공지에서 더보기를 누르면 10개 정도의 공지를 더 불러옵니다.
+
+(5개 이하일 시 아주대 홈피로 이동됨)
+
+<div align="center">
+<p>
+    <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/more_notices.jpg">
+</p>
+</div>
+
 ## [마지막 공지 1개 불러오기](https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/kakao.py#L428)
 
 POST = /last |
@@ -240,14 +257,12 @@ TO-DO: Selenium을 통한 자동 db 업데이트
 </p>
 </div>
 
-## [아주대 지역 날씨 보기]
+## [아주대 지역 날씨 보기](https://github.com/Alfex4936/KakaoChatBot-Golang/blob/main/controllers/infomation.go#L26)
 
 (수원 영통구 날씨를 weather.naver.com에서 불러옴)
 
-POST = /info/weather |
+POST = /info/weather2 |
  발화 = "날씨", "아주대 날씨", "날씨 좋아?" ...
-
-TO-DO: 더 나은 메시지 포맷 찾기
 
 <div align="center">
 <p>
@@ -255,7 +270,7 @@ TO-DO: 더 나은 메시지 포맷 찾기
 </p>
 </div>
 
-## [인물 검색]
+## [인물 검색](https://github.com/Alfex4936/KakaoChatBot-Golang/blob/main/controllers/infomation.go#L65)
 
 POST = /info/prof |
  발화 = "인물"
@@ -267,5 +282,33 @@ TO-DO: 더 나은 발화문
 <div align="center">
 <p>
     <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/search.jpg">
+</p>
+</div>
+
+## [도서관 좌석 현황](https://github.com/Alfex4936/KakaoChatBot-Golang/blob/main/controllers/infomation.go#L109)
+POST = /info/library |
+ 발화 = "도서관", "좌석"
+
+ 발화문 입력 시 중앙도서관 좌석 이용 현황을 불러옵니다.
+
+TO-DO: 더 나은 메시지 포맷
+
+<div align="center">
+<p>
+    <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/library.jpg">
+</p>
+</div>
+
+## [학식 불러오기](https://github.com/Alfex4936/KakaoChatBot-Golang/blob/main/controllers/infomation.go#L135)
+POST = /info/meal |
+ 발화 = "오늘 학식", "내일 학생", "내일 교직원", "내일 기숙사" ...
+
+ 오늘/내일 장소를 입력하면 시간에 맞는 장소의 학식 정보를 불러옵니다.
+
+TO-DO: 더 나은 메시지 포맷
+
+<div align="center">
+<p>
+    <img width="300" src="https://github.com/Alfex4936/kakaoChatbot-Ajou/blob/main/imgs/meal.png">
 </p>
 </div>
