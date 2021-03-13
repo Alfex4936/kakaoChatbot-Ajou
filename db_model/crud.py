@@ -64,3 +64,4 @@ def delete_old_notice(db: Session, date: str):
 def get_all_sched(db: Session):
     scheds = db.query(models.Schedules).all()
     return scheds
+
