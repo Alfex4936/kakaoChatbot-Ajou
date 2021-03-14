@@ -5,6 +5,8 @@ from urllib.request import urlopen
 
 from selectolax.parser import HTMLParser
 
+from typed_python import Class, Final, Forward, Member, ListOf
+
 
 class Homepage:
     __slots__ = ()
@@ -74,8 +76,7 @@ class Homepage:
         dates = soup.css("span.b-date")
         writers = soup.css("span.b-writer")
 
-        notices = []
-        append = notices.append
+        notices = ListOf(Notice)()
 
         for i in range(length):
             title = posts[i].text(strip=True)
@@ -92,13 +93,22 @@ class Homepage:
                 writer,
                 ADDRESS + posts[i].attributes["href"],
             )
-            append(notice)
+            notices.append(notice)
 
         return notices, length
 
 
-class Notice:
-    __slots__ = ("_id", "_post", "_date", "_link", "_writer")
+init = Forward("ClassWithInit")
+
+
+@init.define
+class Notice(Class, Final):
+    # __slots__ = ("_id", "_post", "_date", "_link", "_writer")
+    _id = Member(str)
+    _post = Member(str)
+    _date = Member(str)
+    _writer = Member(str)
+    _link = Member(str)
 
     def __init__(self, id, post, date, writer, link):
         self._id = id
