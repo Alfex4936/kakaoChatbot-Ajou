@@ -7,6 +7,7 @@ import db_model.crud
 import db_model.database
 import db_model.models
 import db_model.schemas
+import functools
 import uvicorn
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,6 +32,21 @@ application.add_middleware(
     allow_credentials=True,
 )
 
+# Decorators
+def checkUserAvailability(func):
+    @functools.wraps(func)
+    def __isUser(*args, **kwargs):
+        content, db = args
+
+        if content is not None:
+            user_id = content["userRequest"]["user"]["id"]  # user Id
+            user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
+            if user is None:
+                user = db_model.crud.create_user(db=db, user_id=user_id)
+        return func(*args, **kwargs)
+
+    return __isUser
+
 
 # SQL START
 
@@ -41,13 +57,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-def checkUserDB(db: Session, user_id: str):
-    user = db_model.crud.get_user_by_user_id(db=db, user_id=user_id)
-    if user is None:
-        user = db_model.crud.create_user(db=db, user_id=user_id)
-    return user
 
 
 def checkLastNotice(db: Session, user_id: str):
@@ -102,7 +111,7 @@ def makeCarouselCard(title, desc):
     return card
 
 
-def getTodayNotices(db, now, user_id):
+def getTodayNotices(now):
     """ 30개 정도의 공지 목록을 읽고, 날짜에 맞는 것만 return"""
     noticesToday = []
     append = noticesToday.append
@@ -121,7 +130,7 @@ def getTodayNotices(db, now, user_id):
         )
         append(data)
 
-    updateLastNotice(db, user_id, int(notices[0].id))
+    # updateLastNotice(db, user_id, int(notices[0].id))
 
     return noticesToday
 
@@ -147,14 +156,10 @@ def getLastNotice():
     return data, notice[0].date
 
 
-def switch(db, when, now, user_id):
+def switch(when, now, db):
     """ 오늘/어제 공지에 따른 옵션 switch """
     DAY = "오늘" if when == "today" else "이전"
-    notices = (
-        getTodayNotices(db, now, user_id)
-        if DAY == "오늘"
-        else getYesterdayNotices(db, now)
-    )
+    notices = getTodayNotices(now) if DAY == "오늘" else getYesterdayNotices(db, now)
     if not notices:
         notices = [
             {
@@ -225,10 +230,9 @@ def searchDate(content: Dict):
 
 
 @application.post("/ask/filter")
+@checkUserAvailability
 def searchKeyword(content: Dict, db: Session = Depends(get_db)):
     """유저가 카테고리를 선택하도록 유도한다. 메시지 type: ListCard"""
-    user_id = content["userRequest"]["user"]["id"]  # user Id
-    checkUserDB(db, user_id)
     # pprint(content)
     # print(content["action"]["params"]["cate"])
 
@@ -269,8 +273,6 @@ def searchKeyword(content: Dict, db: Session = Depends(get_db)):
         )
         notices.append(data)
 
-    updateLastNotice(db, user_id, int(notices[0].id))
-
     data = Kjson.buildListCard(
         title=f"{user_category} 공지",
         items=notices[:5],
@@ -289,10 +291,9 @@ def searchKeyword(content: Dict, db: Session = Depends(get_db)):
 
 
 @application.post("/last")
+@checkUserAvailability
 def parseOne(content: Dict, db: Session = Depends(get_db)):
     """지난 최근 마지막 공지 1개만 읽어온다. 메시지 type: ListCard"""
-    user_id = content["userRequest"]["user"]["id"]  # user Id
-    checkUserDB(db, user_id)
     if not Homepage.checkConnection():
         return makeTimeoutMessage()
 
@@ -309,11 +310,9 @@ def parseOne(content: Dict, db: Session = Depends(get_db)):
 
 
 @application.post("/search")
+@checkUserAvailability
 def searchNotice(content: Dict, db: Session = Depends(get_db)):
     """유저의 키워드에 맞는 공지를 불러온다. 메시지 type: simpleText | ListCard"""
-    user_id = content["userRequest"]["user"]["id"]  # user Id
-    checkUserDB(db, user_id)
-
     if not Homepage.checkConnection():
         return makeTimeoutMessage()
 
@@ -342,8 +341,6 @@ def searchNotice(content: Dict, db: Session = Depends(get_db)):
         )
         notices.append(data)
 
-    updateLastNotice(db, user_id, int(notices[0].id))
-
     data = Kjson.buildListCard(
         title=f"{keyword[:12]} 결과",
         items=notices[:5],
@@ -366,10 +363,9 @@ def searchNotice(content: Dict, db: Session = Depends(get_db)):
 
 
 @application.post("/message")
+@checkUserAvailability
 def message(content: Dict, db: Session = Depends(get_db)):
     """어제/오늘 공지 불러오기 위한 route | 메시지 type: ListCard """
-    user_id = content["userRequest"]["user"]["id"]  # user Id
-    checkUserDB(db, user_id)
     if not Homepage.checkConnection():
         return makeTimeoutMessage()
 
@@ -383,16 +379,15 @@ def message(content: Dict, db: Session = Depends(get_db)):
         now = now - timedelta(days=1)
         now = now.strftime("%y.%m.%d")
 
-    response_data = switch(db, when, now, user_id)
+    response_data = switch(when, now, db)
 
     return JSONResponse(content=response_data)
 
 
 @application.post("/schedule")
+@checkUserAvailability
 def schedule(content: Dict, db: Session = Depends(get_db)):
     """MySQL DB 학사일정 불러오기 | 메시지 type: Carousel BasicCards """
-    user_id = content["userRequest"]["user"]["id"]  # user Id
-    checkUserDB(db, user_id)
 
     cards = []
     append = cards.append
