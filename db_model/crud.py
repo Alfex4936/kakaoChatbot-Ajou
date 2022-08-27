@@ -15,15 +15,22 @@ def get_user_last_notice(db: Session, user_id: str):
 
 
 def create_user(db: Session, user_id: str):
-    db_user = models.Users(user_id=user_id, last_notice_id=10000,)
+    db_user = models.Users(
+        user_id=user_id,
+        last_notice_id=10000,
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
 
 
-def create_notice(db: Session, id: int, title: str, date: str, link: str, writer: str):
-    db_notice = models.Notices(id=id, title=title, date=date, link=link, writer=writer)
+def create_notice(
+    db: Session, id: int, title: str, category: str, date: str, link: str, writer: str
+):
+    db_notice = models.Notices(
+        id=id, title=title, category=category, date=date, link=link, writer=writer
+    )
     db.add(db_notice)
     db.commit()
     db.refresh(db_notice)
@@ -64,4 +71,3 @@ def delete_old_notice(db: Session, date: str):
 def get_all_sched(db: Session):
     scheds = db.query(models.Schedules).all()
     return scheds
-

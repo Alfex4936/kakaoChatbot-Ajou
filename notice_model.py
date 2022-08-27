@@ -1,11 +1,9 @@
 import ssl
-
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 from selectolax.parser import HTMLParser
-
-from typed_python import Class, Final, Forward, Member, ListOf
+from typed_python import Class, Final, Forward, ListOf, Member
 
 
 class Homepage:
@@ -13,7 +11,7 @@ class Homepage:
 
     @staticmethod
     def checkConnection():
-        """ 홈페이지 반응을 체크한다. """
+        """홈페이지 반응을 체크한다."""
         context = ssl._create_unverified_context()
         try:
             urlopen(

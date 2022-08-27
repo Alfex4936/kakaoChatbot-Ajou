@@ -22,7 +22,9 @@ class Kjson:
     def buildSimpleText(msg, quickReplies=None):
         data = {
             "version": "2.0",
-            "template": {"outputs": [{"simpleText": {"text": msg}}],},  # max len = 1000
+            "template": {
+                "outputs": [{"simpleText": {"text": msg}}],
+            },  # max len = 1000
         }
 
         if quickReplies is not None:
@@ -48,4 +50,3 @@ class Kjson:
         if quickReplies is not None:
             data["template"]["quickReplies"] = quickReplies
         return data
-

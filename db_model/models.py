@@ -8,6 +8,7 @@ class Notices(Base):
 
     id = Column(Integer, primary_key=True, unique=True)
     title = Column(String(100))
+    category = Column(String(5))
     date = Column(String(30))
     link = Column(String(101))
     writer = Column(String(25))

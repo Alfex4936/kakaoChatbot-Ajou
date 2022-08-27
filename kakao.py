@@ -1,22 +1,21 @@
+import functools
 from datetime import datetime, timedelta
 from random import choice
 from typing import Dict
 from urllib.parse import quote
 
-import db_model.crud
-import db_model.database
-import db_model.models
-import db_model.schemas
-import functools
 import uvicorn
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from notice_model import Homepage
+import db_model.crud
+import db_model.database
+import db_model.models
+import db_model.schemas
 from json_model import Kjson
-
+from notice_model import Homepage
 
 ADDRESS = "https://www.ajou.ac.kr/kr/ajou/notice.do"
 
@@ -85,7 +84,7 @@ def updateLastNotice(db: Session, user_id: str, notice_id: int):
 
 
 def makeTimeoutMessage():
-    """ checkConnection() 결과 False, 아래 JSON 데이터를 return"""
+    """checkConnection() 결과 False, 아래 JSON 데이터를 return"""
     return JSONResponse(
         content=Kjson.buildSimpleText("아주대학교 홈페이지 서버 반응이 늦고 있네요. 잠시 후 다시 시도해보세요.")
     )
@@ -112,7 +111,7 @@ def makeCarouselCard(title, desc):
 
 
 def getTodayNotices(now):
-    """ 30개 정도의 공지 목록을 읽고, 날짜에 맞는 것만 return"""
+    """30개 정도의 공지 목록을 읽고, 날짜에 맞는 것만 return"""
     noticesToday = []
     append = noticesToday.append
 
@@ -136,7 +135,7 @@ def getTodayNotices(now):
 
 
 def getYesterdayNotices(db, now):
-    """ 어제 공지는 MySQL 데이터베이스를 통해 읽어온다. """
+    """어제 공지는 MySQL 데이터베이스를 통해 읽어온다."""
     db_notices = db_model.crud.get_notices_with_date(db=db, date=now)
 
     notices = []
@@ -150,14 +149,14 @@ def getYesterdayNotices(db, now):
 
 
 def getLastNotice():
-    """ 마지막 1개의 공지만 읽어온다. """
+    """마지막 1개의 공지만 읽어온다."""
     notice, _ = Homepage.parseNotices(length=1)  # Parse one notice
     data = Kjson.buildCard(*notice[0].getAttrs("id", "title", "date", "link", "writer"))
     return data, notice[0].date
 
 
 def switch(when, now, db):
-    """ 오늘/어제 공지에 따른 옵션 switch """
+    """오늘/어제 공지에 따른 옵션 switch"""
     DAY = "오늘" if when == "today" else "이전"
     notices = getTodayNotices(now) if DAY == "오늘" else getYesterdayNotices(db, now)
     if not notices:
@@ -302,7 +301,9 @@ def parseOne(content: Dict, db: Session = Depends(get_db)):
     data = Kjson.buildListCard(
         title=f"{date} 공지",
         items=[notice],
-        buttons=[{"label": "공유하기", "action": "share"},],
+        buttons=[
+            {"label": "공유하기", "action": "share"},
+        ],
         quickReplies=None,
     )
 
@@ -320,7 +321,11 @@ def searchNotice(content: Dict, db: Session = Depends(get_db)):
     content = content["action"]["params"]
     if not "sys_text" in content:
         qr = [
-            {"messageText": "2021 검색", "action": "message", "label": "2021 검색",},
+            {
+                "messageText": "2021 검색",
+                "action": "message",
+                "label": "2021 검색",
+            },
         ]
 
         return JSONResponse(
@@ -365,7 +370,7 @@ def searchNotice(content: Dict, db: Session = Depends(get_db)):
 @application.post("/message")
 @checkUserAvailability
 def message(content: Dict, db: Session = Depends(get_db)):
-    """어제/오늘 공지 불러오기 위한 route | 메시지 type: ListCard """
+    """어제/오늘 공지 불러오기 위한 route | 메시지 type: ListCard"""
     if not Homepage.checkConnection():
         return makeTimeoutMessage()
 
@@ -387,7 +392,7 @@ def message(content: Dict, db: Session = Depends(get_db)):
 @application.post("/schedule")
 @checkUserAvailability
 def schedule(content: Dict, db: Session = Depends(get_db)):
-    """MySQL DB 학사일정 불러오기 | 메시지 type: Carousel BasicCards """
+    """MySQL DB 학사일정 불러오기 | 메시지 type: Carousel BasicCards"""
 
     cards = []
     append = cards.append
